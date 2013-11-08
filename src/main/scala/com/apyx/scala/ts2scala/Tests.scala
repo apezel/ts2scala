@@ -8,7 +8,9 @@ object JQuery { }
 object Main {
 	
 	def main(args:Array[String]) {
-		println(JQuery.jquery.$)
+		var a = JQuery.jquery.$.ajax("hello").___then( myFunc[Int] )
 	}
+	
+	def myFunc[U](args:Any*):JQuery.JQueryGenericPromise[U] = { null }
 	
 }

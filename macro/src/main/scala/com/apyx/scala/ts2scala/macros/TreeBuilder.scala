@@ -104,7 +104,7 @@ class TreeBuilder(val c:Context) {
 		
 		val body:List[Tree] = memberDeclsToTree(sym)
 		val objectName = TermName(sym.name.name)
-		
+
 		q"object $objectName { ..$body }"
 		
 	}
@@ -129,8 +129,14 @@ class TreeBuilder(val c:Context) {
 					else
 						targs
 				
+				
 				val fArity:String = "Function"+(typeRefArgs.size-1).toString
-				val fTypeDefs:List[Tree] = typeRefArgs.map(x => toTypeTree(x))
+				
+				val fTypeDefs:List[Tree] = typeRefArgs.map(x => toTypeTree(x)) match {
+					case AppliedTypeTree(x, y) :: r if (x.toString() == "_root_.scala.<repeated>") => 
+						toTypeTree(ts.TypeRef(Name("Seq"), ts.TypeRef(Name("Any")) :: Nil)) +: r
+					case x @ _ => x
+				}
 				
 				(q"type ${TypeName(fArity)}", fTypeDefs)
 				
