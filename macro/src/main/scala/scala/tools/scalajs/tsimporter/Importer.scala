@@ -225,9 +225,9 @@ class Importer {
         if (!tparams.isEmpty) {
           // Type parameters in function types are not supported
           TypeRef.Function
-        } else if (params.exists(_.tpe.exists(_.isInstanceOf[RepeatedType]))) {
+        //} else if (params.exists(_.tpe.exists(_.isInstanceOf[RepeatedType]))) {
           // Repeated params in function types are not supported
-          TypeRef.Function
+        //  TypeRef.Function
         } else {
           val paramTypes =
             for (FunParam(_, _, TypeOrAny(tpe)) <- params)

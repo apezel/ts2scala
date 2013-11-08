@@ -53,17 +53,22 @@ class TreeBuilder(val c:Context) {
 			case _ => Nil
 		}
 	}
-
-	private def toValDef(sym:ts.ParamSymbol) = {
-
-		/* use a dummy def to construct params : needed to create a repeated param */
+	
+	private def toPackageDef(sym:ts.PackageSymbol):List[Tree] = { //TODO there's no package macro but we should try to simulate it with an object
 		
-		val q"def $mName[..$mType](...$mmArgs):$resType = $mBody" = sym.tpe match {
-			case ts.TypeRef.Repeated(tpe) => q"def dummy(${TermName(sym.name.name)}:${toTypeTree(tpe)}*):Unit = {  }"
-			case x @ _ => q"def dummy(${TermName(sym.name.name)}: ${toTypeTree(x)}):Unit = {  }"
-		}
-
-		mmArgs(0)(0)
+		val splittedPackage =
+			if (sym.name == Name.EMPTY)
+				Nil // root
+			else
+				sym.name.toString.split('.').toList
+				
+		var pBody:List[Tree] = memberDeclsToTree(sym)
+		
+		for (pName <- splittedPackage.reverse)
+			pBody = q"object ${TermName(pName)} { ..$pBody }" :: Nil
+		
+		pBody
+		
 	}
 
 	private def toClassDef(sym:ts.ClassSymbol) = {
@@ -104,26 +109,19 @@ class TreeBuilder(val c:Context) {
 		
 	}
 	
-	private def toPackageDef(sym:ts.PackageSymbol):List[Tree] = { //TODO there's no package macro but we should try to simulate it with an object
+	private def toValDef(sym:ts.ParamSymbol):ValDef = {
+
+		/* use a dummy method to construct params : needed to create a repeated param */
+		val q"def $mName[..$mType](...$mmArgs):$resType = $mBody" = q"def dummy(${TermName(sym.name.name)}: ${toTypeTree(sym.tpe)}):Unit = ???"
 		
-		val splittedPackage =
-			if (sym.name == Name.EMPTY)
-				Nil // root
-			else
-				sym.name.toString.split('.').toList
-				
-		var pBody:List[Tree] = memberDeclsToTree(sym)
-		
-		for (pName <- splittedPackage.reverse)
-			pBody = q"object ${TermName(pName)} { ..$pBody }" :: Nil
-		
-		pBody
-		
+		mmArgs(0)(0)
 	}
 	
 	private def toTypeTree(typeRef:ts.TypeRef):Tree = {
 		
 		val (typeDef:TypeDef, tparams) = typeRef match {
+			case ts.TypeRef.Repeated(tpe) => return toRepeatedTypeTree(tpe)
+			
 			case ts.TypeRef(qn, targs) if qn.toString() == "Function" => 
 				val typeRefArgs =
 					if (targs.size == 0)
@@ -144,6 +142,14 @@ class TreeBuilder(val c:Context) {
 			case 0 => Ident(typeDef.name)
 			case _ => AppliedTypeTree(Ident(typeDef.name), tparams)
 		}
+	}
+	
+	private def toRepeatedTypeTree(typeRef:ts.TypeRef):Tree = {
+		
+		/* use a dummy method to construct params : needed to create a repeated param */
+		val q"def $mName[..$mType](...$mmArgs):$resType = $mBody" = q"def dummy(v: ${toTypeTree(typeRef)}*):Unit = ???"
+		
+		mmArgs(0)(0).tpt //return AppliedTypeTree
 	}
 
 	
