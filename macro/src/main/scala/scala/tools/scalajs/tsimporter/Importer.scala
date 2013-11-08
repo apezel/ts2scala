@@ -212,7 +212,7 @@ class Importer {
           case TypeNameName(name) => QualifiedName(name.asInstanceOf[Name])
           case QualifiedTypeName(qualifier, TypeNameName(name)) =>
             val qual1 = qualifier map (x => Name(x.name))
-            QualifiedName((qual1 :+ Name(name)): _*)
+            QualifiedName((qual1 :+ name.asInstanceOf[Name]): _*)
           case _: CoreType => throw new MatchError(base)
         }
         TypeRef(baseTypeRef, targs map typeToScala)

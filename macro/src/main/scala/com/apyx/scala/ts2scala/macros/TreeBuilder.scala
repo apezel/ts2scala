@@ -119,7 +119,7 @@ class TreeBuilder(val c:Context) {
 	
 	private def toTypeTree(typeRef:ts.TypeRef):Tree = {
 		
-		val (typeDef:TypeDef, tparams) = typeRef match {
+		val (typeSignature:String, tparams) = typeRef match {
 			case ts.TypeRef.Repeated(tpe) => return toRepeatedTypeTree(tpe)
 			
 			case ts.TypeRef(qn, targs) if qn.toString() == "Function" => 
@@ -134,19 +134,19 @@ class TreeBuilder(val c:Context) {
 				
 				val fTypeDefs:List[Tree] = typeRefArgs.map(x => toTypeTree(x)) match {
 					case AppliedTypeTree(x, y) :: r if (x.toString() == "_root_.scala.<repeated>") => 
-						toTypeTree(ts.TypeRef(Name("Seq"), ts.TypeRef(Name("Any")) :: Nil)) +: r
+						toTypeTree(ts.TypeRef(Name("Seq"), ts.TypeRef(Name("Any")) :: Nil)) +: r //repeated type inside parameter function should be replaced by Seq[Any]
 					case x @ _ => x
 				}
 				
-				(q"type ${TypeName(fArity)}", fTypeDefs)
+				(fArity, fTypeDefs)
 				
-			case x @ _ => (q"type ${TypeName(x.toString)}", typeRef.targs.map(toTypeTree))
+			case x @ _ => (x.toString, typeRef.targs.map(toTypeTree))
 			
 		}
 		
 		tparams.size match {
-			case 0 => Ident(typeDef.name)
-			case _ => AppliedTypeTree(Ident(typeDef.name), tparams)
+			case 0 => buildTypeFromString(typeSignature)
+			case _ => AppliedTypeTree(buildTypeFromString(typeSignature), tparams)
 		}
 	}
 	
@@ -157,8 +157,23 @@ class TreeBuilder(val c:Context) {
 		
 		mmArgs(0)(0).tpt //return AppliedTypeTree
 	}
-
 	
+	def buildTypeFromString(s:String):Tree = {
+		val pckg :+ tpe = s.split('.').toList
+		
+		pckg.size match {
+			case 0 => return Ident(TypeName(tpe))
+			case 1 => return Select(Ident(TermName(pckg(0))), TypeName(tpe))
+			case _ =>
+				val p0 :: p1 :: rest = pckg
+				
+				return Select(rest.foldLeft(Select(Ident(TermName(p0)), TermName(p1))) {
+					(u, v) => Select(u, TermName(v))
+				}, TypeName(tpe))
+		}
+		
+	}
+
 	private def memberDeclsToTree(owner: ts.ContainerSymbol):List[Tree] = {
 
 		var tree:List[Tree] = List()
