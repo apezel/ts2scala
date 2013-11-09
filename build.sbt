@@ -1,6 +1,6 @@
 scalaVersion := "2.11.0-SNAPSHOT"
 
-name := "TypeScript importer for Scala.js"
+name := "ts2scala"
 
 version := "0.1-SNAPSHOT"
 

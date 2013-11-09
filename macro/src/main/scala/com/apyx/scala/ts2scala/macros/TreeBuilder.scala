@@ -120,7 +120,7 @@ class TreeBuilder(val c:Context) {
 	private def toTypeTree(typeRef:ts.TypeRef):Tree = {
 		
 		val (typeSignature:String, tparams) = typeRef match {
-			case ts.TypeRef.Repeated(tpe) => return toRepeatedTypeTree(tpe)
+			case ts.TypeRef.Repeated(tpe) => ("_root_.scala.<repeated>", typeRef.targs.map(toTypeTree))
 			
 			case ts.TypeRef(qn, targs) if qn.toString() == "Function" => 
 				val typeRefArgs =
@@ -128,7 +128,6 @@ class TreeBuilder(val c:Context) {
 						ts.TypeRef.Unit :: Nil
 					else
 						targs
-				
 				
 				val fArity:String = "Function"+(typeRefArgs.size-1).toString
 				
@@ -145,20 +144,12 @@ class TreeBuilder(val c:Context) {
 		}
 		
 		tparams.size match {
-			case 0 => buildTypeFromString(typeSignature)
-			case _ => AppliedTypeTree(buildTypeFromString(typeSignature), tparams)
+			case 0 => buildTypeTree(typeSignature)
+			case _ => AppliedTypeTree(buildTypeTree(typeSignature), tparams)
 		}
 	}
 	
-	private def toRepeatedTypeTree(typeRef:ts.TypeRef):Tree = {
-		
-		/* use a dummy method to construct params : needed to create a repeated param */
-		val q"def $mName[..$mType](...$mmArgs):$resType = $mBody" = q"def dummy(v: ${toTypeTree(typeRef)}*):Unit = ???"
-		
-		mmArgs(0)(0).tpt //return AppliedTypeTree
-	}
-	
-	def buildTypeFromString(s:String):Tree = {
+	def buildTypeTree(s:String):Tree = {
 		val pckg :+ tpe = s.split('.').toList
 		
 		pckg.size match {

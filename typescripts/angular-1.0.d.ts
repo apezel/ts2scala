@@ -6,8 +6,6 @@
 
 /// <reference path="../jquery/jquery.d.ts" />
 
-declare interface JQuery { }
-declare interface JQueryStatic { }
 declare interface Document { }
 declare interface Window { }
 
@@ -16,8 +14,6 @@ interface Function {
     $inject:string[];
 }
 
-
-declare var angular: ng.IAngularStatic;
 ///////////////////////////////////////////////////////////////////////////////
 // ng module (angular.js)
 ///////////////////////////////////////////////////////////////////////////////
@@ -568,8 +564,8 @@ declare module ng {
     interface IHttpPromise<T> extends IPromise<T> {
         success(callback: IHttpPromiseCallback<T>): IHttpPromise<T>;
         error(callback: IHttpPromiseCallback<T>): IHttpPromise<T>;
-        then<TResult>(successCallback: (response: IHttpPromiseCallbackArg<T>) => TResult, errorCallback?: (response: IHttpPromiseCallbackArg<T>) => any): IPromise<TResult>;
-        then<TResult>(successCallback: (response: IHttpPromiseCallbackArg<T>) => IPromise<TResult>, errorCallback?: (response: IHttpPromiseCallbackArg<T>) => any): IPromise<TResult>;
+        /*then<TResult>(successCallback: (response: IHttpPromiseCallbackArg<T>) => TResult, errorCallback?: (response: IHttpPromiseCallbackArg<T>) => any): IPromise<TResult>;
+        then<TResult>(successCallback: (response: IHttpPromiseCallbackArg<T>) => IPromise<TResult>, errorCallback?: (response: IHttpPromiseCallbackArg<T>) => any): IPromise<TResult>; DEBUG */
     }
 
     interface IHttpProvider extends IServiceProvider {
@@ -763,3 +759,5 @@ declare module ng {
     }
 
 }
+
+
