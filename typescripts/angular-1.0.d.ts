@@ -6,9 +6,6 @@
 
 /// <reference path="../jquery/jquery.d.ts" />
 
-declare interface Document { }
-declare interface Window { }
-
 // Support for painless dependency injection
 interface Function {
     $inject:string[];

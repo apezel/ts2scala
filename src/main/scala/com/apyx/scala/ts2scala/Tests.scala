@@ -2,11 +2,17 @@ package com.apyx.scala.ts2scala
 
 import com.apyx.scala.ts2scala.macros.TypeScripted
 
+@TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/global.d.ts")
+object Global { }
+
 @TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/jquery-mod.d.ts")
-object JQuery { }
+object JQuery { 
+	import com.apyx.scala.ts2scala.Global._
+}
 
 @TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/angular-1.0.d.ts")
 object Angular { 
+	import com.apyx.scala.ts2scala.Global._
 	import com.apyx.scala.ts2scala.JQuery._
 }
 

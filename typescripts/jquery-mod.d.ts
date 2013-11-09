@@ -19,16 +19,6 @@ and limitations under the License.
     Interface for the AJAX setting that will configure the AJAX request
 */
 
-/* DEBUG INTERFACES */
-declare interface Event { }
-
-declare interface HTMLElement { }
-
-declare interface Node { } 
-
-declare interface Element { }
-/* ---------------- */
-
 interface XMLHttpRequest {
 
 }

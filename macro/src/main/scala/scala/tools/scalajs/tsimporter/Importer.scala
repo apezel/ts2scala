@@ -27,7 +27,7 @@ class Importer {
     this
   }
   
-  /* added : need to parse every current level declaration before to go deeper. Flattenize process */
+  /* added : need to parse every declaration before to go deeper. Flattenize process */
   private object ProcessQueue
   {
 	  	private var processDeclQueue:List[() => Unit] = List()
