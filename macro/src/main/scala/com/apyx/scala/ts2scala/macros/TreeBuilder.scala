@@ -34,9 +34,7 @@ class TreeBuilder(val c:Context) {
 
 			case sym: ts.FieldSymbol =>
 				
-				val tpe = toTypeTree(sym.tpe)
-				
-				q"var ${TermName(sym.name.name)}: $tpe = _" :: Nil
+				q"var ${TermName(sym.name.name)}: ${toTypeTree(sym.tpe)} = _" :: Nil
 
 			case sym: ts.MethodSymbol =>
 
@@ -111,10 +109,7 @@ class TreeBuilder(val c:Context) {
 	
 	private def toValDef(sym:ts.ParamSymbol):ValDef = {
 
-		/* use a dummy method to construct params : needed to create a repeated param */
-		val q"def $mName[..$mType](...$mmArgs):$resType = $mBody" = q"def dummy(${TermName(sym.name.name)}: ${toTypeTree(sym.tpe)}):Unit = ???"
-		
-		mmArgs(0)(0)
+		ValDef(NoMods, TermName(sym.name.name), toTypeTree(sym.tpe), EmptyTree)
 	}
 	
 	private def toTypeTree(typeRef:ts.TypeRef):Tree = {
