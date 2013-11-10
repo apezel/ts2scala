@@ -36,7 +36,7 @@ class Importer {
 		def run():Unit = {
 			while (processDeclQueue.size > 0)
 			{
-				processDeclQueue(0)() //processDecl(processDeclQueue(0)._1, processDeclQueue(0)._2);
+				processDeclQueue(0)()
 				processDeclQueue = processDeclQueue.drop(1)
 			}
 		}
@@ -50,7 +50,7 @@ class Importer {
         val sym = owner.asInstanceOf[PackageSymbol].getPackageOrCreate(name.asInstanceOf[Name])
 
         for (innerDecl <- innerDecls)
-          ProcessQueue.push { () => /*println(innerDecl);*/ processDecl(sym, innerDecl) }
+          ProcessQueue.push { () => processDecl(sym, innerDecl) }
 
       case VarDecl(IdentName(name), Some(tpe @ ObjectType(members))) =>
         val sym = owner.getModuleOrCreate(name.asInstanceOf[Name])
@@ -64,14 +64,21 @@ class Importer {
         val sym = owner.getClassOrCreate(name.asInstanceOf[Name])
         sym.parents ++= inheritance.map(typeToScala)
         sym.tparams ++= typeParamsToScala(tparams)
+        sym.isTrait = true
+        processMembersDecls(owner, sym, members)
+
+      case ClassDecl(TypeNameName(name), tparams, inheritance, implementation, members) =>
+        val sym = owner.getClassOrCreate(name.asInstanceOf[Name])
+        sym.parents ++= (inheritance ++ implementation).map(typeToScala)
+        sym.tparams ++= typeParamsToScala(tparams)
         processMembersDecls(owner, sym, members)
 
       case VarDecl(IdentName(name), TypeOrAny(tpe)) =>
         val sym = owner.newField(name.asInstanceOf[Name])
         sym.tpe = typeToScala(tpe)
 
-      case FunctionDecl(IdentName(name), signature) =>
-        processDefDecl(owner, Name(name), signature)
+      case FunctionDecl(isStatic:Boolean, IdentName(name), signature) =>
+        processDefDecl(isStatic, owner, name.asInstanceOf[Name], signature)
         
       case ExportRefDecl(IdentName(name)) =>
       	val sym = owner.getExportFieldRefOrAbort(name.asInstanceOf[Name])
@@ -97,24 +104,24 @@ class Importer {
     }
 
     for (member <- members) member match {
-      case CallMember(signature) =>
-        processDefDecl(owner, Name("apply"), signature)
+      case CallMember(isStatic, signature) =>
+        processDefDecl(isStatic, owner, Name("apply"), signature)
 
       case ConstructorMember(sig @ FunSignature(tparamsIgnored, params, Some(resultType)))
       if owner.isInstanceOf[ModuleSymbol] && resultType == companionClassRef =>
         val classSym = enclosing.getClassOrCreate(owner.name)
         classSym.isTrait = false
-        processDefDecl(classSym, Name.CONSTRUCTOR,
+        processDefDecl(false, classSym, Name.CONSTRUCTOR,
             FunSignature(Nil, params, Some(TypeRefTree(CoreType("void")))))
 
       case PropertyMember(PropertyNameName(name), opt, tpe) =>
         if (name.asInstanceOf[Name].name != "prototype") {
           val sym = owner.newField(name.asInstanceOf[Name])
-          sym.tpe = typeToScala(tpe)
+          sym.tpe = tpe.map(typeToScala) getOrElse TypeRef(QualifiedName(Name("Any")))
         }
 
-      case FunctionMember(PropertyNameName(name), opt, signature) =>
-        processDefDecl(owner, name.asInstanceOf[Name], signature)
+      case FunctionMember(isStatic, PropertyNameName(name), opt, signature) =>
+        processDefDecl(isStatic, owner, name.asInstanceOf[Name], signature)
 
       case IndexMember(IdentName(indexName), indexType, valueType) =>
         val indexTpe = typeToScala(indexType)
@@ -136,7 +143,7 @@ class Importer {
     }
   }
 
-  private def processDefDecl(owner: ContainerSymbol, name: Name,
+  private def processDefDecl(isStatic:Boolean, owner: ContainerSymbol, name: Name,
       signature: FunSignature) {
     // Discard specialized signatures
     if (signature.params.exists(_.tpe.exists(_.isInstanceOf[ConstantType])))
@@ -145,6 +152,7 @@ class Importer {
     for (sig <- makeAlternatives(signature)) {
       
     	val sym = new MethodSymbol(name)
+      sym.isStatic = isStatic
 
       sym.tparams ++= typeParamsToScala(sig.tparams)
 
@@ -161,21 +169,7 @@ class Importer {
 
       sym.resultType = typeToScala(signature.resultType.orDynamic, true)
       
-      def appendMethodSymbol(ms:MethodSymbol):Unit = {
-	      owner hasMethodWithSameSignatureThan ms match {
-	      	case TypeMatch.NO => owner.addSymbol(ms)
-	      	case TypeMatch.MAYBE =>
-	      		val nms = new MethodSymbol(Name("_"+ms.name.toString))
-	      		nms.params ++= ms.params
-	      		nms.tparams ++= ms.tparams
-	      		nms.resultType = ms.resultType
-	      		appendMethodSymbol(nms)
-	      	case TypeMatch.YES => /* nothing */
-	      	case _ => throw new Exception("unable to compare methods")
-	      }
-      }
-      
-      appendMethodSymbol(sym)
+      owner.addSymbol(sym)
       		
     }
   }

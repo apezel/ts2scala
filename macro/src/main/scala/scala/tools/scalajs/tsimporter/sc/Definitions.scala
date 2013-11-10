@@ -11,6 +11,60 @@ import scala.collection.mutable._
 
 import scala.tools.scalajs.tsimporter.Utils
 
+
+object ClassRegister {
+	
+	protected val register:Map[String, ClassSymbol] = Map()
+	
+	def put(sym:ClassSymbol) = {
+		println("put "+sym.qualifiedName.toString)
+		register.put(sym.qualifiedName.toString, sym)
+	}
+	
+	def get(lookupPath:QualifiedName, name:QualifiedName):Option[ClassSymbol] = {
+		
+		var sumPath = ""
+		lookupPath.parts.foreach { x => sumPath += x+"."; println("get "+sumPath+name.toString+" = "+register.get(sumPath+name.toString)); register.get(sumPath+name.toString) match {
+				case y @ Some(sym) => return y
+				case _ => /* nothing */
+			}
+		}
+		
+		None
+	}
+	
+	put(AnyClassSymbol())
+	
+	object AnyClassSymbol {
+	  
+  		def apply():ClassSymbol = {
+  			var sym:ClassSymbol = new ClassSymbol(Name("Any"))
+  			
+			sym.members ++= ("clone" :: "notify" :: "notifyAll" :: "toString" :: "wait" :: Nil).map {
+  				x => val m = new MethodSymbol(Name(x));
+  					m.exported = true;
+  					m
+  				}
+
+  			sym.members ++= ("wait" :: Nil).map {
+  				x => val m = new MethodSymbol(Name(x));
+  					val param = new ParamSymbol(Name("param"));
+  					param.tpe = TypeRef(QualifiedName(Name("Long")))
+  					m.params ++= param :: Nil
+  					m.exported = true;
+  					m
+  				}
+
+  			sym.exported = true
+  			
+  			sym
+  		}
+  		
+  }
+	
+}
+
+
 case class Name(name: String) {
   override def toString() = Utils.scalaEscape(name)
 }
@@ -34,9 +88,14 @@ case class QualifiedName(parts: Name*) {
 	override def toString() =
 		if (isRoot) "_root_" else parts.mkString(".")
 
-	def dot(name: Name) = QualifiedName((parts :+ name):_*)
 	def init = QualifiedName(parts.init:_*)
 	def last = parts.last
+	
+	def dot(name: Name) = QualifiedName((parts :+ name):_*)
+	
+	def +(qn:QualifiedName):QualifiedName = {
+		QualifiedName((parts ++ qn.parts):_*)
+	}
 	
 }
 
@@ -53,9 +112,32 @@ object QualifiedName {
   def Function(arity: Int) = { var ret = QualifiedName(Name("Function")); ret.arity = arity; ret }
 }
 
-class Symbol(val name: Name) {
+class Symbol(var name: Name) {
 
-	var owner:ContainerSymbol = null
+	protected var _owner:ContainerSymbol = _
+	def owner:ContainerSymbol = _owner
+	def owner_=(v:ContainerSymbol) = { _owner = v }
+	
+	var exported:Boolean = false
+
+	def qualifiedName = {
+		
+		var o = owner
+		var parts:Seq[Name] = Seq()
+
+		if (owner != null)
+		{
+			while (o != null)
+			{
+				parts =  o.name +: parts
+				o = o.owner
+			}
+		}
+		else
+			parts = Seq(Name(""))
+		
+		QualifiedName((parts :+ name):_*)
+	}
 	
   override def toString() =
     s"${this.getClass.getSimpleName}($name)}"
@@ -67,12 +149,27 @@ class CommentSymbol(val text: String) extends Symbol(Name("<comment>")) {
 }
 
 class ContainerSymbol(nme: Name) extends Symbol(nme) {
-  val members = new ListBuffer[Symbol]
+  var members = new ListBuffer[Symbol]
 
   private var _anonMemberCounter = 0
   def newAnonMemberName() = {
     _anonMemberCounter += 1
     "anon$" + _anonMemberCounter
+  }
+  
+  def addSymbol(sym:Symbol) = {
+	sym.owner = this
+	members += sym
+
+  }
+  
+  def replaceSymbol(sym:Symbol, nsym:Symbol) = {
+  		nsym.owner = this
+  		members.update(members.indexOf(sym), nsym)
+  }
+  
+  def dropSymbol(sym:Symbol) = {
+  	members -= (sym)
   }
 
   def findClass(name: Name): Option[ClassSymbol] = {
@@ -80,19 +177,19 @@ class ContainerSymbol(nme: Name) extends Symbol(nme) {
       case sym: ClassSymbol if sym.name == name => sym
     }
   }
-
+  
   def findModule(name: Name): Option[ModuleSymbol] = {
     members.collectFirst {
       case sym: ModuleSymbol if sym.name == name => sym
     }
   }
   
-  def hasMethodWithSameSignatureThan(method0:MethodSymbol):TypeMatch = { //None should be interpreted as maybe => depends of type erasure
+  def hasSymbolWithSameSignatureThan(sym:DoubleErasure):TypeMatch = { //None should be interpreted as maybe => depends of type erasure
   	
   	members.foreach { _ match {
-  		case sym:MethodSymbol =>
-  			sym.hasSameSignatureThan(method0) match {
-  				case x @ (TypeMatch.YES | TypeMatch.MAYBE) => return x
+  		case x:DoubleErasure if !(x eq sym) && x.exported =>
+  			sym hasSameSignatureThan x match {
+  				case y @ (TypeMatch.YES | TypeMatch.MAYBE) => return y
   				case _ => /* nothing */
   			}
   		case _ => /* nothing*/
@@ -170,10 +267,6 @@ class ContainerSymbol(nme: Name) extends Symbol(nme) {
     result
   }
   
-  def addSymbol(sym:Symbol) = {
-	sym.owner = this
-	members += sym
-  }
 }
 
 class PackageSymbol(nme: Name) extends ContainerSymbol(nme) {
@@ -196,10 +289,46 @@ class PackageSymbol(nme: Name) extends ContainerSymbol(nme) {
 }
 
 class ClassSymbol(nme: Name) extends ContainerSymbol(nme) {
+	
   val tparams = new ListBuffer[TypeParamSymbol]
   val parents = new ListBuffer[TypeRef]
   var companionModule: ModuleSymbol = _
-  var isTrait: Boolean = true
+  var isTrait: Boolean = false
+  
+  override def owner_=(v:ContainerSymbol) = { _owner = v; ClassRegister.put(this) }
+  
+  protected def inheritedMembers():ListBuffer[Symbol] = {
+		
+		val members0 = new ListBuffer[Symbol] ++ members
+		
+		if (owner != null)
+		{
+			(parents :+ TypeRef(Name("Any"))).foreach { tpe => 
+		  		ClassRegister.get(owner.qualifiedName, tpe.typeName) match {
+		  			case Some(sym:ClassSymbol) => members0 ++= sym.inheritedMembers
+		  			case None => /* nothing */
+		  		}
+			}
+		}
+		
+		members0
+  }
+  
+  override def hasSymbolWithSameSignatureThan(sym:DoubleErasure):TypeMatch = {
+  	
+  	inheritedMembers.foreach { _ match {
+  		case x:DoubleErasure if !(x eq sym) && x.exported =>
+  			sym hasSameSignatureThan x match {
+  				case y @ (TypeMatch.YES | TypeMatch.MAYBE) => return y
+  				case _ => /* nothing */
+  			}
+  		case _ => /* nothing*/
+  		}
+  	}
+  	
+  	TypeMatch.NO
+  	
+  }
 
   override def toString() = (
       (if (isTrait) s"trait $name" else s"class $name") +
@@ -212,34 +341,86 @@ class ModuleSymbol(nme: Name) extends ContainerSymbol(nme) {
   override def toString() = s"object $name"
 }
 
-class FieldSymbol(nme: Name) extends Symbol(nme) {
-  var tpe: TypeRef = TypeRef.Any
+trait DoubleErasure extends Symbol {
 
-  override def toString() = s"var $name: $tpe"
+	type T
+	type U <: DoubleErasure
+	
+	def doubleSafeSymbol():Option[T]
+
+	def hasSameSignatureThan[U](sym0:U):TypeMatch
+	
 }
 
+class FieldSymbol(nme: Name) extends Symbol(nme) with DoubleErasure {
+	
+	type T = FieldSymbol
+	
+	var tpe: TypeRef = TypeRef.Any
 
-class MethodSymbol(nme: Name) extends Symbol(nme) {
-  val tparams = new ListBuffer[TypeParamSymbol]
-  val params = new ListBuffer[ParamSymbol]
-  var resultType: TypeRef = TypeRef.Dynamic
+	def doubleSafeSymbol():Option[FieldSymbol] = {
+			owner hasSymbolWithSameSignatureThan this match {
+				case TypeMatch.MAYBE | TypeMatch.YES => None
+				case TypeMatch.NO => Some(this)
+			}
+	}
 
-  var jsName: Option[String] = None
-  var isBracketAccess: Boolean = false
-  
-  def hasSameSignatureThan(method0:MethodSymbol):TypeMatch = {
-  	
-		  TypeMatch(name == method0.name && params.size == method0.params.size) match {
-		  	
-		  	case x @ TypeMatch.YES =>
-		  		var ret = x
-		  		for (i <- 0 to params.size - 1) 
-		  			ret = ret :+ (params(0) hasSameSignatureThan method0.params(0))
-		  		ret
-		  	case x @ _ => x
-		  	
-		  }
-  }
+	def hasSameSignatureThan[U](sym0:U):TypeMatch = {
+
+			return sym0 match {
+				case x:FieldSymbol => TypeMatch(name == x.name) :+ (tpe hasSameSignatureThan x.tpe)
+				case x:MethodSymbol => TypeMatch(name == x.name)
+				case _ => TypeMatch.NO
+			}
+	}
+
+	override def toString() = s"var $name: $tpe"
+
+}
+
+class MethodSymbol(nme: Name) extends Symbol(nme) with DoubleErasure {
+	
+	type T = DoubleErasure
+	
+	val tparams = new ListBuffer[TypeParamSymbol]
+	val params = new ListBuffer[ParamSymbol]
+	var resultType: TypeRef = TypeRef.Dynamic
+	var isStatic:Boolean = false
+
+	var jsName: Option[String] = None
+	var isBracketAccess: Boolean = false
+	
+	def doubleSafeSymbol():Option[MethodSymbol] = {
+		owner hasSymbolWithSameSignatureThan this match {
+	      	case TypeMatch.MAYBE =>
+	      		this.name = Name(this.name.name+"_")
+	      		this.doubleSafeSymbol()
+	      	case TypeMatch.YES => None 
+	      	case TypeMatch.NO => Some(this)
+	      	case _ => throw new Exception("unable to compare methods")
+		}
+	}
+
+	def hasSameSignatureThan[U](sym0:U):TypeMatch = {
+
+		return sym0 match {
+				case x:MethodSymbol => 
+					
+					TypeMatch(name == x.name && params.size == x.params.size) match {
+	
+						case y @ TypeMatch.YES =>
+							var ret = y
+							for (i <- 0 to params.size - 1) 
+								ret = ret :+ (params(0) hasSameSignatureThan x.params(0))
+							ret
+						case y @ _ => y
+				
+					}
+					
+				case _ => TypeMatch.NO
+			}
+		
+	}
 
 }
 
@@ -371,3 +552,5 @@ object TypeRef {
   }
   
 }
+
+

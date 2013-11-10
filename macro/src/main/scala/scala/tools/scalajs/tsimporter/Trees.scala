@@ -64,7 +64,7 @@ object Trees {
 
   case class VarDecl(name: Ident, tpe: Option[TypeTree]) extends DeclTree
 
-  case class FunctionDecl(name: Ident, signature: FunSignature) extends DeclTree
+  case class FunctionDecl(isStatic:Boolean, name: Ident, signature: FunSignature) extends DeclTree
   
   case class ExportRefDecl(name: Ident) extends DeclTree
 
@@ -102,6 +102,9 @@ object Trees {
   case class InterfaceDecl(name: TypeName, tparams: List[TypeParam],
       inheritance: List[TypeRef], members: List[MemberTree]) extends DeclTree
 
+  case class ClassDecl(name: TypeName, tparams: List[TypeParam],
+      inheritance: List[TypeRef], implementation: List[TypeRef], members: List[MemberTree]) extends DeclTree
+
   case class TypeRef(name: BaseTypeRef, tparams: List[TypeRef] = Nil) extends TypeTree
 
   sealed abstract class BaseTypeRef extends Tree
@@ -124,13 +127,13 @@ object Trees {
 
   // Type members
 
-  case class CallMember(signature: FunSignature) extends MemberTree
+  case class CallMember(isStatic:Boolean, signature: FunSignature) extends MemberTree
 
   case class ConstructorMember(signature: FunSignature) extends MemberTree
 
   case class IndexMember(indexName: Ident, indexType: TypeTree, valueType: TypeTree) extends MemberTree
 
-  case class PropertyMember(name: PropertyName, optional: Boolean, tpe: TypeTree) extends MemberTree
+  case class PropertyMember(name: PropertyName, optional: Boolean, tpe: Option[TypeTree]) extends MemberTree
 
-  case class FunctionMember(name: PropertyName, optional: Boolean, signature: FunSignature) extends MemberTree
+  case class FunctionMember(isStatic:Boolean, name: PropertyName, optional: Boolean, signature: FunSignature) extends MemberTree
 }

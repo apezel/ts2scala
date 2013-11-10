@@ -24,6 +24,8 @@ class TreeBuilder(val c:Context) {
 
 	def symbolToTree(sym: ts.Symbol):List[Tree] = {
 
+		sym.exported = true
+		
 		sym match {
 
 			case sym: ts.PackageSymbol => toPackageDef(sym)
@@ -32,21 +34,9 @@ class TreeBuilder(val c:Context) {
 
 			case sym: ts.ClassSymbol => toClassDef(sym) :: Nil
 
-			case sym: ts.FieldSymbol =>
-				
-				q"var ${TermName(sym.name.name)}: ${toTypeTree(sym.tpe)} = _" :: Nil
+			case sym: ts.FieldSymbol => sym.doubleSafeSymbol().map(toFieldDef) getOrElse Nil
 
-			case sym: ts.MethodSymbol =>
-
-				val mArgs = List(sym.params.map(toValDef))
-
-				sym.name match {
-					case Name.CONSTRUCTOR if !sym.params.isEmpty => q"def this(...$mArgs) = this()" :: Nil
-					case Name.CONSTRUCTOR => Nil
-					case x @ _ =>
-						val mType = sym.tparams.map(u => q"type ${TypeName(u.toString)}")
-						q"def ${TermName(x.name)}[..$mType](...$mArgs):${toTypeTree(sym.resultType)}" :: Nil
-				}
+			case sym: ts.MethodSymbol => sym.doubleSafeSymbol().map(toMethodDef) getOrElse Nil
 
 			case _ => Nil
 		}
@@ -70,7 +60,7 @@ class TreeBuilder(val c:Context) {
 	}
 
 	private def toClassDef(sym:ts.ClassSymbol) = {
-		
+
 		val body:List[Tree] = memberDeclsToTree(sym)
 		val typeName = TypeName(sym.name.name)
 	
@@ -96,6 +86,7 @@ class TreeBuilder(val c:Context) {
 				val ext:List[Tree] = sym.parents.toList.map(u => toTypeTree(u))
 				q"abstract class $typeName[..$cType] extends ..$ext { ..$body }"
 		}
+		
 	}
 	
 	private def toModuleDef(sym:ts.ModuleSymbol) = {
@@ -107,9 +98,30 @@ class TreeBuilder(val c:Context) {
 		
 	}
 	
-	private def toValDef(sym:ts.ParamSymbol):ValDef = {
+	private def toMethodDef(sym:ts.MethodSymbol) = {
+		
+		val mArgs = List(sym.params.map(toParamDef))
+
+		sym.name match {
+			case Name.CONSTRUCTOR if !sym.params.isEmpty => q"def this(...$mArgs) = this()" :: Nil
+			case Name.CONSTRUCTOR => Nil
+			case x @ _ =>
+				val mType = sym.tparams.map(u => q"type ${TypeName(u.toString)}")
+				q"def ${TermName(x.name)}[..$mType](...$mArgs):${toTypeTree(sym.resultType)} = ???" :: Nil
+		}
+		
+	}
+	
+	private def toParamDef(sym:ts.ParamSymbol) = {
 
 		ValDef(NoMods, TermName(sym.name.name), toTypeTree(sym.tpe), EmptyTree)
+		
+	}
+	
+	private def toFieldDef(sym:ts.FieldSymbol) = {
+		
+		q"var ${TermName(sym.name.name)}: ${toTypeTree(sym.tpe)} = _" :: Nil
+	
 	}
 	
 	private def toTypeTree(typeRef:ts.TypeRef):Tree = {

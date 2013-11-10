@@ -66,7 +66,7 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
 
   lazy val ambientDeclaration1 = (
       ambientModuleDecl | ambientVarDecl | ambientFunctionDecl
-    | ambientInterfaceDecl
+    | ambientInterfaceDecl | ambientClassDecl
   )
 
   lazy val ambientModuleDecl: Parser[DeclTree] =
@@ -85,17 +85,20 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
 
   lazy val moduleElementDecl1: Parser[DeclTree] = (
       ambientModuleDecl | ambientVarDecl | ambientFunctionDecl
-    | ambientInterfaceDecl | ambientExportRefDecl
+    | ambientInterfaceDecl | ambientClassDecl | ambientExportRefDecl
   )
 
   lazy val ambientVarDecl: Parser[DeclTree] =
     "var" ~> identifier ~ optTypeAnnotation <~ opt(";") ^^ VarDecl
 
   lazy val ambientFunctionDecl: Parser[DeclTree] =
-    "function" ~> identifier ~ functionSignature <~ opt(";") ^^ FunctionDecl
+    staticModifier ~ ("function" ~> identifier) ~ functionSignature <~ opt(";") ^^ FunctionDecl
 
   lazy val ambientInterfaceDecl: Parser[DeclTree] =
     "interface" ~> typeName ~ tparams ~ intfInheritance ~ memberBlock <~ opt(";") ^^ InterfaceDecl
+    
+  lazy val ambientClassDecl: Parser[DeclTree] =
+    "class" ~> typeName ~ tparams ~ intfInheritance ~ intfImplementation ~ memberBlock <~ opt(";") ^^ ClassDecl
 
   lazy val tparams = (
       "<" ~> rep1sep(typeParam, ",") <~ ">"
@@ -113,6 +116,11 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
     | success(Nil)
   )
 
+  lazy val intfImplementation = (
+      "implements" ~> repsep(typeRef, ",")
+    | success(Nil)
+  )
+
   lazy val functionSignature =
     tparams ~ ("(" ~> repsep(functionParam, ",") <~ ")") ~ optResultType ^^ FunSignature
 
@@ -127,6 +135,9 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
             s"Warning: Dropping repeated marker of param $i because its type $t is not an array type")
         FunParam(i, o, t)
     }
+
+  lazy val staticModifier = 
+    opt("static") ^^ (_.isDefined)
 
   lazy val repeatedParamMarker =
     opt("...") ^^ (_.isDefined)
@@ -196,7 +207,7 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
     callMember | constructorMember | indexMember | namedMember
 
   lazy val callMember: Parser[MemberTree] =
-    functionSignature ^^ CallMember
+    opt(scopeModifier) ~> staticModifier ~ functionSignature ^^ CallMember
 
   lazy val constructorMember: Parser[MemberTree] =
     "new" ~> functionSignature ^^ ConstructorMember
@@ -205,12 +216,14 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
     ("[" ~> identifier ~ typeAnnotation <~ "]") ~ typeAnnotation ^^ IndexMember
 
   lazy val namedMember: Parser[MemberTree] =
-    propertyName ~ optionalMarker >> {
-      case name ~ optional => (
-          functionSignature ^^ (FunctionMember(name, optional, _))
-        | typeAnnotation ^^ (PropertyMember(name, optional, _))
+    opt(scopeModifier) ~> staticModifier ~ propertyName ~ optionalMarker >> {
+      case isStatic ~ name ~ optional => (
+          functionSignature ^^ (FunctionMember(isStatic, name, optional, _))
+        | optTypeAnnotation ^^ (PropertyMember(name, optional, _))
       )
     }
+
+  lazy val scopeModifier = "public" //TODO : detect others
 
   lazy val identifier =
     identLike ^^ Ident
