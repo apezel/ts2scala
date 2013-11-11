@@ -133,7 +133,7 @@ object Trees {
 
   case class IndexMember(indexName: Ident, indexType: TypeTree, valueType: TypeTree) extends MemberTree
 
-  case class PropertyMember(name: PropertyName, optional: Boolean, tpe: Option[TypeTree]) extends MemberTree
+  case class PropertyMember(isStatic:Boolean, name: PropertyName, optional: Boolean, tpe: Option[TypeTree]) extends MemberTree
 
   case class FunctionMember(isStatic:Boolean, name: PropertyName, optional: Boolean, signature: FunSignature) extends MemberTree
 }

@@ -219,7 +219,7 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
     opt(scopeModifier) ~> staticModifier ~ propertyName ~ optionalMarker >> {
       case isStatic ~ name ~ optional => (
           functionSignature ^^ (FunctionMember(isStatic, name, optional, _))
-        | optTypeAnnotation ^^ (PropertyMember(name, optional, _))
+        | optTypeAnnotation ^^ (PropertyMember(isStatic, name, optional, _))
       )
     }
 

@@ -250,14 +250,6 @@ class ContainerSymbol(nme: Name) extends Symbol(nme) {
   		
   	fieldSymbol
   }
-  
-
-  def newField(name: Name): FieldSymbol = {
-    val result = new FieldSymbol(name)
-    result.owner = this
-    members += result
-    result
-  }
 
   def newMethod(name: Name): MethodSymbol = {
     val result = new MethodSymbol(name)
@@ -296,7 +288,7 @@ class ClassSymbol(nme: Name) extends ContainerSymbol(nme) {
   
   override def addSymbol(sym:Symbol) = {
   	sym match {
-  		case x:MethodSymbol if x.isStatic =>
+  		case x:StaticAware if x.isStatic =>
   			if (companionModule == null)
   			{
   				companionModule = owner.getModuleOrCreate(name)
@@ -304,7 +296,7 @@ class ClassSymbol(nme: Name) extends ContainerSymbol(nme) {
   			}
   			
   			companionModule.addSymbol(sym)
-  			
+ 
   		case x @ _ =>
   			sym.owner = this
   			members += sym
@@ -358,6 +350,10 @@ class ModuleSymbol(nme: Name) extends ContainerSymbol(nme) {
   override def toString() = s"object $name"
 }
 
+trait StaticAware extends {
+	var isStatic:Boolean = false
+}
+
 trait DoubleErasure extends Symbol {
 
 	type T
@@ -369,7 +365,7 @@ trait DoubleErasure extends Symbol {
 	
 }
 
-class FieldSymbol(nme: Name) extends Symbol(nme) with DoubleErasure {
+class FieldSymbol(nme: Name) extends Symbol(nme) with StaticAware with DoubleErasure  {
 	
 	type T = FieldSymbol
 	
@@ -395,14 +391,13 @@ class FieldSymbol(nme: Name) extends Symbol(nme) with DoubleErasure {
 
 }
 
-class MethodSymbol(nme: Name) extends Symbol(nme) with DoubleErasure {
+class MethodSymbol(nme: Name) extends Symbol(nme) with StaticAware with DoubleErasure {
 	
 	type T = DoubleErasure
 	
 	val tparams = new ListBuffer[TypeParamSymbol]
 	val params = new ListBuffer[ParamSymbol]
 	var resultType: TypeRef = TypeRef.Dynamic
-	var isStatic:Boolean = false
 
 	var jsName: Option[String] = None
 	var isBracketAccess: Boolean = false

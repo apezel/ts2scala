@@ -6,3 +6,4 @@ declare interface Node { }
 declare interface Element { }
 declare interface RegExp { }
 declare interface Location { }
+declare interface Date { }

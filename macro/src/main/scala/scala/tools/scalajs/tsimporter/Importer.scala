@@ -74,8 +74,9 @@ class Importer {
         processMembersDecls(owner, sym, members)
 
       case VarDecl(IdentName(name), TypeOrAny(tpe)) =>
-        val sym = owner.newField(name.asInstanceOf[Name])
+        val sym = new FieldSymbol(name.asInstanceOf[Name])
         sym.tpe = typeToScala(tpe)
+        owner.addSymbol(sym)
 
       case FunctionDecl(isStatic:Boolean, IdentName(name), signature) =>
         processDefDecl(isStatic, owner, name.asInstanceOf[Name], signature)
@@ -114,10 +115,12 @@ class Importer {
         processDefDecl(false, classSym, Name.CONSTRUCTOR,
             FunSignature(Nil, params, Some(TypeRefTree(CoreType("void")))))
 
-      case PropertyMember(PropertyNameName(name), opt, tpe) =>
+      case PropertyMember(isStatic, PropertyNameName(name), opt, tpe) =>
         if (name.asInstanceOf[Name].name != "prototype") {
-          val sym = owner.newField(name.asInstanceOf[Name])
+          val sym = new FieldSymbol(name.asInstanceOf[Name])
+          sym.isStatic = isStatic
           sym.tpe = tpe.map(typeToScala) getOrElse TypeRef(QualifiedName(Name("Any")))
+          owner.addSymbol(sym)
         }
 
       case FunctionMember(isStatic, PropertyNameName(name), opt, signature) =>

@@ -28,6 +28,11 @@ object Backbone {
 	import com.apyx.scala.ts2scala.JQuery._
 }
 
+@TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/mongodb.d.ts")
+object MongoDB { 
+	import com.apyx.scala.ts2scala.Global._
+}
+
 
 object Main {
 	
@@ -36,7 +41,8 @@ object Main {
 		import com.apyx.scala.ts2scala.Angular._
 		import com.apyx.scala.ts2scala.Bootstrap._
 		import com.apyx.scala.ts2scala.Backbone._
-		$
+		import com.apyx.scala.ts2scala.MongoDB._
+		
 	}
 	
 	def myFunc[U](args:Any*):JQuery.JQueryGenericPromise[U] = { null }
