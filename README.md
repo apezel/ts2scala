@@ -9,28 +9,28 @@ Thank to Sébastien Doeraene for the parser's code and to Eugene Burmako for his
 
 Example of use :
 ----------------
-
-@TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/global.d.ts")
+```
+@TypeScripted(file="/path/to/typescripts/global.d.ts")
 object Global { }
 
-@TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/jquery-ori.d.ts")
+@TypeScripted(file="/path/to/typescripts/jquery-ori.d.ts")
 object JQuery { 
 	import com.apyx.scala.ts2scala.Global._
 }
 
-@TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/angular-1.0.d.ts")
+@TypeScripted(file="/path/to/typescripts/angular-1.0.d.ts")
 object Angular { 
 	import com.apyx.scala.ts2scala.Global._
 	import com.apyx.scala.ts2scala.JQuery._
 }
 
-@TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/bootstrap.d.ts")
+@TypeScripted(file="/path/to/typescripts/bootstrap.d.ts")
 object Bootstrap { 
 	import com.apyx.scala.ts2scala.Global._
 	import com.apyx.scala.ts2scala.JQuery._
 }
 
-@TypeScripted(file="/Users/home/scala/projects/ts2scala/typescripts/backbone.d.ts")
+@TypeScripted(file="/path/to/typescripts/backbone.d.ts")
 object Backbone { 
 	import com.apyx.scala.ts2scala.Global._
 	import com.apyx.scala.ts2scala.JQuery._
@@ -49,7 +49,7 @@ object Main {
 	}
 	
 }
-
+```
 
 Arnaud PEZEL
 [Apyx](http://www.apyx.fr/)
