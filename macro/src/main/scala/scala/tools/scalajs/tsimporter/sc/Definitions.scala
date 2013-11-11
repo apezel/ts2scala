@@ -160,7 +160,6 @@ class ContainerSymbol(nme: Name) extends Symbol(nme) {
   def addSymbol(sym:Symbol) = {
 	sym.owner = this
 	members += sym
-
   }
   
   def replaceSymbol(sym:Symbol, nsym:Symbol) = {
@@ -294,6 +293,24 @@ class ClassSymbol(nme: Name) extends ContainerSymbol(nme) {
   val parents = new ListBuffer[TypeRef]
   var companionModule: ModuleSymbol = _
   var isTrait: Boolean = false
+  
+  override def addSymbol(sym:Symbol) = {
+  	sym match {
+  		case x:MethodSymbol if x.isStatic =>
+  			if (companionModule == null)
+  			{
+  				companionModule = owner.getModuleOrCreate(name)
+  				companionModule.companionClass = this
+  			}
+  			
+  			companionModule.addSymbol(sym)
+  			
+  		case x @ _ =>
+  			sym.owner = this
+  			members += sym
+  	}
+	  
+  }
   
   override def owner_=(v:ContainerSymbol) = { _owner = v; ClassRegister.put(this) }
   
