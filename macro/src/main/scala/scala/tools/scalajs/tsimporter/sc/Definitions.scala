@@ -17,14 +17,13 @@ object ClassRegister {
 	protected val register:Map[String, ClassSymbol] = Map()
 	
 	def put(sym:ClassSymbol) = {
-		println("put "+sym.qualifiedName.toString)
 		register.put(sym.qualifiedName.toString, sym)
 	}
 	
 	def get(lookupPath:QualifiedName, name:QualifiedName):Option[ClassSymbol] = {
 		
 		var sumPath = ""
-		lookupPath.parts.foreach { x => sumPath += x+"."; println("get "+sumPath+name.toString+" = "+register.get(sumPath+name.toString)); register.get(sumPath+name.toString) match {
+		lookupPath.parts.foreach { x => sumPath += x+"."; register.get(sumPath+name.toString) match {
 				case y @ Some(sym) => return y
 				case _ => /* nothing */
 			}
