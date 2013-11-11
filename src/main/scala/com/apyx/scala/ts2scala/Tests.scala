@@ -42,7 +42,7 @@ object Main {
 		import com.apyx.scala.ts2scala.Bootstrap._
 		import com.apyx.scala.ts2scala.Backbone._
 		import com.apyx.scala.ts2scala.MongoDB._
-		
+		$("div")
 	}
 	
 	def myFunc[U](args:Any*):JQuery.JQueryGenericPromise[U] = { null }
