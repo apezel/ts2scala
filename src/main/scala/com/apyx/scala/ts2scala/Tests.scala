@@ -6,43 +6,39 @@ import com.apyx.scala.ts2scala.macros.TS2Scala
 object Global { }
 
 @TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/jquery-ori.d.ts")
-object JQuery { 
-	import com.apyx.scala.ts2scala.Global._
+object JQuery {
+	import Global._
 }
 
 @TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/angular-1.0.d.ts")
 object Angular { 
-	import com.apyx.scala.ts2scala.Global._
-	import com.apyx.scala.ts2scala.JQuery._
+	import Global._
+	import JQuery._
 }
 
 @TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/bootstrap.d.ts")
 object Bootstrap { 
-	import com.apyx.scala.ts2scala.Global._
-	import com.apyx.scala.ts2scala.JQuery._
+	import Global._
+	import JQuery._
 }
 
 @TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/backbone.d.ts")
 object Backbone { 
-	import com.apyx.scala.ts2scala.Global._
-	import com.apyx.scala.ts2scala.JQuery._
+	import Global._
+	import JQuery._
 }
 
 @TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/mongodb.d.ts")
 object MongoDB { 
-	import com.apyx.scala.ts2scala.Global._
+	import Global._
 }
 
 
 object Main {
 	
 	def main(args:Array[String]) {
-		import com.apyx.scala.ts2scala.JQuery.jquery._
-		import com.apyx.scala.ts2scala.Angular._
-		import com.apyx.scala.ts2scala.Bootstrap._
-		import com.apyx.scala.ts2scala.Backbone._
-		import com.apyx.scala.ts2scala.MongoDB._
-		
+		import JQuery.jquery._
+
 		$("div").blur()
 	}
 	

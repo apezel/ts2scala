@@ -7,48 +7,53 @@ This tool reads type definitions files written for
 
 Thank to Sébastien Doeraene for the parser's code and to Eugene Burmako for his precious help
 
+There's also a [JScala](https://github.com/nau/jscala/) connector
+
 Example of use :
 ----------------
 ```
-@TypeScripted(file="/path/to/typescripts/global.d.ts")
+@TS2Scala(file="/path/to/typescripts/global.d.ts")
 object Global { }
 
-@TypeScripted(file="/path/to/typescripts/jquery-ori.d.ts")
+@TS2Scala(file="/path/to/typescripts/jquery-ori.d.ts")
 object JQuery { 
-	import com.apyx.scala.ts2scala.Global._
+	import Global._
 }
 
-@TypeScripted(file="/path/to/typescripts/angular-1.0.d.ts")
+@TS2Scala(file="/path/to/typescripts/angular-1.0.d.ts")
 object Angular { 
-	import com.apyx.scala.ts2scala.Global._
-	import com.apyx.scala.ts2scala.JQuery._
+	import Global._
+	import JQuery._
 }
 
-@TypeScripted(file="/path/to/typescripts/bootstrap.d.ts")
+@TS2Scala(file="/path/to/typescripts/bootstrap.d.ts")
 object Bootstrap { 
-	import com.apyx.scala.ts2scala.Global._
-	import com.apyx.scala.ts2scala.JQuery._
+	import Global._
+	import JQuery._
 }
 
-@TypeScripted(file="/path/to/typescripts/backbone.d.ts")
+@TS2Scala(file="/path/to/typescripts/backbone.d.ts")
 object Backbone { 
-	import com.apyx.scala.ts2scala.Global._
-	import com.apyx.scala.ts2scala.JQuery._
+	import Global._
+	import JQuery._
 }
 
 
 object Main {
 	
 	def main(args:Array[String]) {
-		import com.apyx.scala.ts2scala.JQuery.jquery._
-		import com.apyx.scala.ts2scala.Angular._
-		import com.apyx.scala.ts2scala.Bootstrap._
-		import com.apyx.scala.ts2scala.Backbone._
+		import JQuery.jquery._
 		
 		$("div").blur()
 	}
 	
 }
+```
+
+SBT :
+-----
+```
+libraryDependencies += ("fr.apyx" %% "ts2scala-macros" % "0.2.1")
 ```
 
 Arnaud PEZEL
