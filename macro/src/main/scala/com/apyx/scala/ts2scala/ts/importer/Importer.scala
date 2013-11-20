@@ -1,8 +1,8 @@
 /* Modified by Arnaud PEZEL, Apyx, 2013*/
-package scala.tools.scalajs.tsimporter
+package com.apyx.scala.ts2scala.ts.importer
 
 import Trees.{ TypeRef => TypeRefTree, _ }
-import sc._
+import com.apyx.scala.ts2scala.definition._
 import java.lang.Exception
 
 /** The meat and potatoes: the importer
@@ -202,11 +202,10 @@ class Importer {
         coreTypeToScala(tpe, anyAsDynamic)
 
       case TypeRefTree(base, targs) =>
-        val baseTypeRef = base match {
+        val baseTypeRef:QualifiedName = base match {
           case TypeName("Array") => QualifiedName.Array
           case TypeName("Function") => QualifiedName.FunctionBase
-          case TypeName("Element") => QualifiedName(Name("Any")) //todo
-          case TypeNameName(name) => QualifiedName(name.asInstanceOf[Name])
+          case TypeNameName(name) => Importer.dialect.dictionnary.get(name.asInstanceOf[Name]) getOrElse QualifiedName(name.asInstanceOf[Name])
           case QualifiedTypeName(qualifier, TypeNameName(name)) =>
             val qual1 = qualifier map (x => Name(x.name))
             QualifiedName((qual1 :+ name.asInstanceOf[Name]): _*)
@@ -220,7 +219,6 @@ class Importer {
 
       case FunctionType(FunSignature(tparams, params, Some(resultType))) =>
         if (!tparams.isEmpty) {
-          // Type parameters in function types are not supported
           TypeRef.Function
         } else {
           val paramTypes =
@@ -256,35 +254,40 @@ class Importer {
 }
 
 object Importer {
-  private val AnyType = TypeRefTree(CoreType("any"))
-  private val DynamicType = TypeRefTree(CoreType("dynamic"))
+	
+	import com.apyx.scala.ts2scala.dialect._
+	
+	var dialect:Dialect = DefaultDialect
+	
+	private val AnyType = TypeRefTree(CoreType("any"))
+	private val DynamicType = TypeRefTree(CoreType("dynamic"))
 
-  private implicit class OptType(val optType: Option[TypeTree]) extends AnyVal {
-    @inline def orAny: TypeTree = optType.getOrElse(AnyType)
-    @inline def orDynamic: TypeTree = optType.getOrElse(DynamicType)
-  }
+	private implicit class OptType(val optType: Option[TypeTree]) extends AnyVal {
+		@inline def orAny: TypeTree = optType.getOrElse(AnyType)
+		@inline def orDynamic: TypeTree = optType.getOrElse(DynamicType)
+	}
 
-  private object TypeOrAny {
-    @inline def unapply(optType: Option[TypeTree]) = Some(optType.orAny)
-  }
+	private object TypeOrAny {
+		@inline def unapply(optType: Option[TypeTree]) = Some(optType.orAny)
+	}
 
-  private object IdentName {
-    @inline def unapply(ident: Ident) =
-      Some(Name(ident.name))
-  }
+	private object IdentName {
+		@inline def unapply(ident: Ident) =
+				Some(Name(ident.name))
+	}
 
-  private object TypeNameName {
-    @inline def apply(typeName: Name) =
-      TypeName(typeName.name)
-    @inline def unapply(typeName: TypeName) =
-      Some(Name(typeName.name))
-  }
+	private object TypeNameName {
+		@inline def apply(typeName: Name) =
+				TypeName(typeName.name)
+		@inline def unapply(typeName: TypeName) =
+				Some(Name(typeName.name))
+	}
+	
+	private object PropertyNameName {
+		@inline def unapply(propName: PropertyName) =
+				Some(Name(escapeApply(propName.name)))
+	}
 
-  private object PropertyNameName {
-    @inline def unapply(propName: PropertyName) =
-      Some(Name(escapeApply(propName.name)))
-  }
-
-  private def escapeApply(ident: String) =
-    if (ident == "apply") "$apply" else ident
+	private def escapeApply(ident: String) =
+			if (ident == "apply") "$apply" else ident
 }

@@ -1,8 +1,8 @@
-scalaVersion := "2.11.0-SNAPSHOT"
+scalaVersion := "2.11.0-M7"
 
 name := "ts2scala"
 
-version := "0.1-SNAPSHOT"
+version := "0.1"
 
 mainClass := Some("com.apyx.scala.ts2scala.Main")
 

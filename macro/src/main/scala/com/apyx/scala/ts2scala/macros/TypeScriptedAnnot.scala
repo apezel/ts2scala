@@ -3,17 +3,22 @@ package com.apyx.scala.ts2scala.macros
 import scala.annotation.StaticAnnotation
 import scala.language.experimental.macros
 import scala.reflect.macros.Context
-import scala.tools.scalajs.tsimporter.Main
+import com.apyx.scala.ts2scala.ts.importer._
+import com.apyx.scala.ts2scala.dialect._
 
-
-object TypeScriptedMacro {
-	def annot_impl(c:Context)(annottees:c.Expr[Any]*): c.Expr[Any] = {
+object TS2Scala {
+	
+	def impl(c:Context)(annottees:c.Expr[Any]*): c.Expr[Any] = _impl(DefaultDialect)(c)(annottees:_*)
+	
+	def _impl(dialect:Dialect)(c:Context)(annottees:c.Expr[Any]*): c.Expr[Any] = {
 		import c.universe._
-			
-	    def extractArgValue(args:List[Tree], name:String):Any = {
-				
+		
+		Importer.dialect = dialect
+		
+		def extractArgValue(args:List[Tree], name:String):Option[Tree] = {
+
 				for (arg <- args) arg match {
-					case x:AssignOrNamedArg if (x.lhs.toString == name) => return x.rhs.toString
+					case x:AssignOrNamedArg if (x.lhs.toString == name) => return Some(x.rhs)
 					case _ => None
 				}
 				
@@ -21,9 +26,9 @@ object TypeScriptedMacro {
 		}
 		
 	    val inputFileName = c.macroApplication.children(0) match {
-			case q"new TypeScripted(..$args).macroTransform" => extractArgValue(args, "file") match {
-				case None => throw new Exception("please specify a file argument")
-				case x:String => x.replaceAll("\"", "") 
+			case q"new $name(..$args).macroTransform" => extractArgValue(args, "file") match {
+				case None => c.abort(c.enclosingPosition, "Please specify a file argument")
+				case Some(x:Tree) => x.toString.replaceAll("\"", "") 
 			}
 		}
 	    
@@ -34,8 +39,6 @@ object TypeScriptedMacro {
 			val rootPackage = Main.typescript2scala(inputFileName)
 			
 			var oBody = body ++ new TreeBuilder(c).symbolToTree(rootPackage).asInstanceOf[List[Tree]]
-			
-			println(oBody)
 	    
 			q"object $name extends ..$ext { ..$oBody }"
 			
@@ -44,7 +47,7 @@ object TypeScriptedMacro {
 	    val inputs = annottees.map(_.tree).toList
 	    val (annottee, expandees) = inputs match {
 			case (x:ModuleDef) :: rest => (EmptyTree, insertTree(x) +: rest)
-			case x:Any => println("other"); (EmptyTree, x)
+			case _ => c.abort(c.enclosingPosition, "Typescript annotation is only supported on objects")
 	    }
 	    
 		return c.Expr[Any](Block(expandees, Literal(Constant(()))))
@@ -53,6 +56,6 @@ object TypeScriptedMacro {
 	
 }
 
-class TypeScripted extends StaticAnnotation {
-	def macroTransform(annottees: Any*) = macro TypeScriptedMacro.annot_impl
+class TS2Scala(file:String) extends StaticAnnotation {
+	def macroTransform(annottees: Any*) = macro TS2Scala.impl
 }

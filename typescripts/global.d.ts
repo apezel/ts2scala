@@ -1,9 +1,10 @@
-declare interface Document { }
 declare interface Window { }
 declare interface Event { }
-declare interface HTMLElement { }
-declare interface Node { } 
-declare interface Element { }
-declare interface RegExp { }
 declare interface Location { }
 declare interface Date { }
+declare interface Element { }
+declare interface Document { }
+declare interface Window { }
+declare interface RegExp { }
+declare interface HTMLElement { }
+declare interface Node { }

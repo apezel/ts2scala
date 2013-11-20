@@ -6,18 +6,16 @@
 package com.apyx.scala.ts2scala.macros
 
 import scala.reflect.macros.Context
-import scala.tools.scalajs.tsimporter.sc.Name
-import scala.tools.scalajs.tsimporter.{sc => ts}
+import com.apyx.scala.ts2scala.{definition => ts}
 
 class TreeBuilder(val c:Context) {
 	import c.universe._
-	import scala.tools.scalajs.tsimporter.{sc => ts}
 
 	private def canBeTopLevel(sym: ts.Symbol): Boolean = sym.isInstanceOf[ts.ContainerSymbol]
 
 	private def isParameterlessConstructor(sym: ts.Symbol): Boolean = {
 		sym match {
-			case sym: ts.MethodSymbol => sym.name == Name.CONSTRUCTOR && sym.params.isEmpty
+			case sym: ts.MethodSymbol => sym.name == ts.Name.CONSTRUCTOR && sym.params.isEmpty
 			case _ => false
 		}
 	}
@@ -45,7 +43,7 @@ class TreeBuilder(val c:Context) {
 	private def toPackageDef(sym:ts.PackageSymbol):List[Tree] = { //TODO there's no package macro but we should try to simulate it with an object
 		
 		val splittedPackage =
-			if (sym.name == Name.EMPTY)
+			if (sym.name == ts.Name.EMPTY)
 				Nil // root
 			else
 				sym.name.toString.split('.').toList
@@ -64,27 +62,27 @@ class TreeBuilder(val c:Context) {
 		val body:List[Tree] = memberDeclsToTree(sym)
 		val typeName = TypeName(sym.name.name)
 	
-		val cType:List[TypeDef] = sym.tparams.foldLeft(List[TypeDef]())( 
+		val cTypes:List[TypeDef] = sym.tparams.foldLeft(List[TypeDef]())( 
 				(u, v) => u :+ q"type ${c.universe.TypeName(v.toString)}"
 			)
 			
 		(sym.isTrait, sym.parents.isEmpty, sym.members.exists(isParameterlessConstructor)) match {
 			
 			case (true, true, _) =>
-				q"trait $typeName[..$cType] { ..$body }"
+				q"trait $typeName[..$cTypes] { ..$body }"
 			case (true, false, _) => 
 				val ext:List[Tree] = sym.parents.toList.map(u => toTypeTree(u))
-				q"trait $typeName[..$cType] extends ..$ext { ..$body }"
+				q"trait $typeName[..$cTypes] extends ..$ext { ..$body }"
 			case (false, true, false) =>
-				q"abstract class $typeName[..$cType] protected() extends Object { ..$body }"
+				q"abstract class $typeName[..$cTypes] protected() { ..$body }"
 			case (false, false, false) => 
 				val ext:List[Tree] = sym.parents.toList.map(u => toTypeTree(u))
-				q"abstract class $typeName[..$cType] protected() extends ..$ext { ..$body }"
+				q"abstract class $typeName[..$cTypes] protected() extends ..$ext { ..$body }"
 			case (false, true, true) =>
-				q"abstract class $typeName[..$cType] extends Object { ..$body }"
+				q"abstract class $typeName[..$cTypes] { ..$body }"
 			case (false, false, true) => 
 				val ext:List[Tree] = sym.parents.toList.map(u => toTypeTree(u))
-				q"abstract class $typeName[..$cType] extends ..$ext { ..$body }"
+				q"abstract class $typeName[..$cTypes] extends ..$ext { ..$body }"
 		}
 		
 	}
@@ -103,8 +101,8 @@ class TreeBuilder(val c:Context) {
 		val mArgs = List(sym.params.map(toParamDef))
 
 		sym.name match {
-			case Name.CONSTRUCTOR if !sym.params.isEmpty => q"def this(...$mArgs) = this()" :: Nil
-			case Name.CONSTRUCTOR => Nil
+			case ts.Name.CONSTRUCTOR if !sym.params.isEmpty => q"def this(...$mArgs) = this()" :: Nil
+			case ts.Name.CONSTRUCTOR => Nil
 			case x @ _ =>
 				val mType = sym.tparams.map(u => q"type ${TypeName(u.toString)}")
 				q"def ${TermName(x.name)}[..$mType](...$mArgs):${toTypeTree(sym.resultType)} = ???" :: Nil
@@ -140,7 +138,7 @@ class TreeBuilder(val c:Context) {
 				
 				val fTypeDefs:List[Tree] = typeRefArgs.map(x => toTypeTree(x)) match {
 					case AppliedTypeTree(x, y) :: r if (x.toString() == "_root_.scala.<repeated>") => 
-						toTypeTree(ts.TypeRef(Name("Seq"), ts.TypeRef(Name("Any")) :: Nil)) +: r //repeated type inside parameter function should be replaced by Seq[Any]
+						toTypeTree(ts.TypeRef(ts.Name("Seq"), ts.TypeRef(ts.Name("Any")) :: Nil)) +: r //repeated type inside parameter function should be replaced by Seq[Any]
 					case x @ _ => x
 				}
 				

@@ -3,65 +3,13 @@
  * @author  Sbastien Doeraene
  * Modified by Arnaud PEZEL, Apyx, 2013
  */
-package scala.tools.scalajs.tsimporter.sc
+package com.apyx.scala.ts2scala.definition
 
 import scala.language.implicitConversions
 
 import scala.collection.mutable._
 
-import scala.tools.scalajs.tsimporter.Utils
-
-
-object ClassRegister {
-	
-	protected val register:Map[String, ClassSymbol] = Map()
-	
-	def put(sym:ClassSymbol) = {
-		register.put(sym.qualifiedName.toString, sym)
-	}
-	
-	def get(lookupPath:QualifiedName, name:QualifiedName):Option[ClassSymbol] = {
-		
-		var sumPath = ""
-		lookupPath.parts.foreach { x => sumPath += x+"."; register.get(sumPath+name.toString) match {
-				case y @ Some(sym) => return y
-				case _ => /* nothing */
-			}
-		}
-		
-		None
-	}
-	
-	put(AnyClassSymbol())
-	
-	object AnyClassSymbol {
-	  
-  		def apply():ClassSymbol = {
-  			var sym:ClassSymbol = new ClassSymbol(Name("Any"))
-  			
-			sym.members ++= ("clone" :: "notify" :: "notifyAll" :: "toString" :: "wait" :: Nil).map {
-  				x => val m = new MethodSymbol(Name(x));
-  					m.exported = true;
-  					m
-  				}
-
-  			sym.members ++= ("wait" :: Nil).map {
-  				x => val m = new MethodSymbol(Name(x));
-  					val param = new ParamSymbol(Name("param"));
-  					param.tpe = TypeRef(QualifiedName(Name("Long")))
-  					m.params ++= param :: Nil
-  					m.exported = true;
-  					m
-  				}
-
-  			sym.exported = true
-  			
-  			sym
-  		}
-  		
-  }
-	
-}
+import com.apyx.scala.ts2scala.ts.importer.{Utils, TypeRegister}
 
 
 case class Name(name: String) {
@@ -69,9 +17,6 @@ case class Name(name: String) {
 }
 
 object Name {
-  val scala = Name("scala")
-  val js = Name("js")
-
   val EMPTY = Name("")
   val CONSTRUCTOR = Name("<init>")
   val REPEATED = Name("*")
@@ -102,11 +47,10 @@ object QualifiedName {
   implicit def fromName(name: Name) = QualifiedName(name)
 
   val Root = QualifiedName()
-  val scala = Root// dot Name.scala
-  val scala_js = Root//scala dot Name.js
-
-  val Array = scala_js dot Name("Array")
-  val FunctionBase = scala_js dot Name("Function")
+  
+  val Array = Name("Array")
+  val FunctionBase = Name("Function")
+  val Any = Name("AnyRef")
   
   def Function(arity: Int) = { var ret = QualifiedName(Name("Function")); ret.arity = arity; ret }
 }
@@ -303,7 +247,7 @@ class ClassSymbol(nme: Name) extends ContainerSymbol(nme) {
 	  
   }
   
-  override def owner_=(v:ContainerSymbol) = { _owner = v; ClassRegister.put(this) }
+  override def owner_=(v:ContainerSymbol) = { _owner = v; TypeRegister.put(this) }
   
   protected def inheritedMembers():ListBuffer[Symbol] = {
 		
@@ -312,7 +256,7 @@ class ClassSymbol(nme: Name) extends ContainerSymbol(nme) {
 		if (owner != null)
 		{
 			(parents :+ TypeRef(Name("Any"))).foreach { tpe => 
-		  		ClassRegister.get(owner.qualifiedName, tpe.typeName) match {
+		  		TypeRegister.get(owner.qualifiedName, tpe.typeName) match {
 		  			case Some(sym:ClassSymbol) => members0 ++= sym.inheritedMembers
 		  			case None => /* nothing */
 		  		}

@@ -1,9 +1,9 @@
 /* TypeScript importer for Scala.js
  * Copyright 2013 LAMP/EPFL
- * @author  Sébastien Doeraene
+ * @author  S??bastien Doeraene
  */
 
-package scala.tools.scalajs.tsimporter
+package com.apyx.scala.ts2scala.ts.importer
 
 object Utils {
 

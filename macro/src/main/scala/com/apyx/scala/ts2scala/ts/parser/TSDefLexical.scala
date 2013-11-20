@@ -3,7 +3,7 @@
  * @author  Sebastien Doeraene
  */
 
-package scala.tools.scalajs.tsimporter.parser
+package com.apyx.scala.ts2scala.ts.parser
 
 import scala.util.parsing.input.CharArrayReader.EofCh
 import scala.util.parsing.combinator._

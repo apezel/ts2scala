@@ -3,9 +3,9 @@
  * @author  Sbastien Doeraene
  */
 
-package scala.tools.scalajs.tsimporter.parser
+package com.apyx.scala.ts2scala.ts.parser
 
-import scala.tools.scalajs.tsimporter.Trees._
+import com.apyx.scala.ts2scala.ts.importer.Trees._
 import java.io.File
 import scala.collection.mutable.ListBuffer
 import scala.util.parsing.combinator._
@@ -76,7 +76,7 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
           (name, inner) => ModuleDecl(Ident(name.name), inner :: Nil)
         }
     }
-
+    
   lazy val moduleBody: Parser[List[DeclTree]] =
     "{" ~> rep(moduleElementDecl) <~ "}"
 
@@ -221,8 +221,9 @@ class TSDefParser extends StdTokenParsers with ImplicitConversions {
           functionSignature ^^ (FunctionMember(isStatic, name, optional, _))
         | optTypeAnnotation ^^ (PropertyMember(isStatic, name, optional, _))
       )
+      
     }
-
+    
   lazy val scopeModifier = "public" //TODO : detect others
 
   lazy val identifier =
