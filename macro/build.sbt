@@ -1,4 +1,4 @@
-scalaVersion := "2.11.0-M7"
+scalaVersion := "2.11.0"
 
 name := "ts2scala-macros"
 
@@ -6,15 +6,15 @@ version := "0.2.1"
 
 organization := "fr.apyx"
 
-libraryDependencies += "org.scala-lang" % "scala-parser-combinators" % "2.11.0-M4"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.1"
 
-libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-reflect" % "2.11.0-SNAPSHOT"
-)
+libraryDependencies <+= scalaVersion { sv =>
+  "org.scala-lang" % "scala-reflect" % sv
+}
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
-addCompilerPlugin("org.scala-lang.plugins" % "macro-paradise" % "2.0.0-SNAPSHOT" cross CrossVersion.full)
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0" cross CrossVersion.full)
 
 publishMavenStyle := true
 
