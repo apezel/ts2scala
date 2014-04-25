@@ -2,33 +2,33 @@ package com.apyx.scala.ts2scala
 
 import com.apyx.scala.ts2scala.macros.TS2Scala
 
-@TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/global.d.ts")
+@TS2Scala(file="typescripts/global.d.ts")
 object Global { }
 
-@TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/jquery-ori.d.ts")
+@TS2Scala(file="typescripts/jquery-ori.d.ts")
 object JQuery {
 	import Global._
 }
 
-@TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/angular-1.0.d.ts")
+@TS2Scala(file="typescripts/angular-1.0.d.ts")
 object Angular { 
 	import Global._
 	import JQuery._
 }
 
-@TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/bootstrap.d.ts")
+@TS2Scala(file="typescripts/bootstrap.d.ts")
 object Bootstrap { 
 	import Global._
 	import JQuery._
 }
 
-@TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/backbone.d.ts")
+@TS2Scala(file="typescripts/backbone.d.ts")
 object Backbone { 
 	import Global._
 	import JQuery._
 }
 
-@TS2Scala(file="/Users/home/scala/projects/ts2scala/typescripts/mongodb.d.ts")
+@TS2Scala(file="typescripts/mongodb.d.ts")
 object MongoDB { 
 	import Global._
 }
